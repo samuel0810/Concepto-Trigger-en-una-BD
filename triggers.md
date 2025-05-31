@@ -52,7 +52,7 @@ La estructura de un trigger puede variar ligeramente entre diferentes sistemas d
 CREATE TRIGGER nombre_trigger
     [BEFORE | AFTER] [INSERT | UPDATE | DELETE]
     ON nombre_tabla
-    FOR EACH ROW  -- O FOR EACH STATEMENT (en algunos SGBD)
+    FOR EACH ROW  -- O FOR EACH STATEMENT (en algunos SGBD) 
     [WHEN (condicion)] -- Condición opcional para disparar el trigger
 BEGIN
     -- Cuerpo del trigger: Sentencias SQL
@@ -95,3 +95,228 @@ La ejecución de la acción de un trigger depende de su definición:
     * **Ejemplo:** Un trigger `INSTEAD OF INSERT` en una vista que combina `Clientes` y `Pedidos`. Cuando se intenta insertar una fila en la vista, el trigger inserta la información del cliente en la tabla `Clientes` y la información del pedido en la tabla `Pedidos`.
 
 En resumen, la elección entre `BEFORE`, `AFTER` o `INSTEAD OF` es crucial y depende de la lógica de negocio y del momento en que se necesita intervenir en el flujo de una operación de base de datos.
+
+# Ampliación de Triggers en Bases de Datos 📊
+
+## 7. Ejemplos Detallados de Triggers 🛠️
+
+### 7.1 Trigger de Auditoría en PostgreSQL
+```sql
+CREATE OR REPLACE FUNCTION log_salary_change()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF NEW.salary <> OLD.salary THEN
+        INSERT INTO salary_audit (
+            employee_id,
+            old_salary,
+            new_salary,
+            changed_by,
+            change_date
+        ) VALUES (
+            OLD.id,
+            OLD.salary,
+            NEW.salary,
+            current_user,
+            now()
+        );
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER salary_audit_trigger
+AFTER UPDATE ON employees
+FOR EACH ROW EXECUTE FUNCTION log_salary_change();
+```
+
+**Caso de uso**: Cumplimiento normativo GDPR en RRHH
+
+---
+
+### 7.2 Trigger de Integridad Referencial
+```sql
+-- MySQL Example
+DELIMITER //
+CREATE TRIGGER prevent_orphan_records
+BEFORE DELETE ON departments
+FOR EACH ROW
+BEGIN
+    DECLARE employee_count INT;
+    
+    SELECT COUNT(*) INTO employee_count
+    FROM employees
+    WHERE department_id = OLD.id;
+    
+    IF employee_count > 0 THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'No se puede eliminar: existen empleados en este departamento';
+    END IF;
+END//
+DELIMITER ;
+```
+
+---
+
+## 8. Trigger Marketing Avanzado 📧
+
+### 8.1 Flujo Automatizado de Engagement
+
+![Trigger Marketing](C:/Users/miaun/Downloads/TriggerMarketin8.png)
+
+**Plataformas**:
+- **Klaviyo**: Triggers basados en comportamiento
+- **ActiveCampaign**: Automatizaciones multicanal
+- **Braze**: Triggers en tiempo real
+
+**Ejemplo real:**
+```python
+# Pseudocódigo para trigger de abandono de carrito
+if user.cart_items and not user.purchase_within(24h):
+    send_email(
+        template="cart_reminder",
+        items=user.cart_items,
+        discount_code="RECUPERA10"
+    )
+    log_trigger_event("cart_abandoned", user.id)
+```
+
+---
+
+## 9. Creación de Triggers Paso a Paso 📝
+
+### 9.1 En SQL Server con Transacciones
+
+```sql
+CREATE TRIGGER trg_OrderAudit
+ON Orders
+AFTER INSERT, UPDATE, DELETE
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    BEGIN TRY
+        BEGIN TRANSACTION;
+        
+        -- Lógica de auditoría
+        INSERT INTO OrderAudit (...)
+        SELECT ... FROM inserted;
+        
+        COMMIT TRANSACTION;
+    END TRY
+    BEGIN CATCH
+        ROLLBACK TRANSACTION;
+        -- Loggear error
+        EXEC usp_LogError;
+    END CATCH
+END;
+```
+
+### 9.2 Buenas Prácticas
+
+1. **Nomenclatura**: `trg_[Tabla]_[Acción]_[Propósito]`  
+   Ej: `trg_Products_Insert_UpdateStock`
+
+2. **Documentación**:
+   ```sql
+   /* 
+   * Trigger: trg_Products_Update_PriceHistory
+   * Propósito: Registrar cambios de precio para análisis
+   * Creado: 2023-05-15
+   * Dueño: DBA Team
+   */
+   ```
+
+---
+
+## 10. Características Clave de Triggers
+
+| Característica | Implicación                         | Ejemplo                    |
+|----------------|-------------------------------------|----------------------------|
+| Transparente   | No requiere cambios en aplicación   | Auditoría automática       |
+| Atómico        | Se ejecuta en la misma transacción  | Rollback si falla          |
+| Contextual     | Accede al estado anterior/posterior | Comparar valores old/new   |
+| Encadenable    | Puede activar otros triggers         | Actualización en cascada   |
+
+![Diagrama Trigger](C:/Users/miaun/Downloads/diagramaPregunta10.png)
+
+---
+
+## 11. Riesgos y Alternativas a Triggers
+
+### 11.1 Problemas Comunes
+
+- **Recursión Indirecta**:
+  ```sql
+  -- Trigger A en Tabla1 → Actualiza Tabla2
+  -- Trigger B en Tabla2 → Actualiza Tabla1
+  ```
+
+- **Problemas de Performance**:
+  ```python
+  # Antipatrón
+  for _ in range(1_000_000):
+      db.execute("INSERT INTO table VALUES(...)")
+      # Se dispara trigger en cada inserción
+  ```
+
+### 11.2 Patrones de Mitigación
+
+1. **Bulk Operations**:
+   ```sql
+   DISABLE TRIGGER trg_Audit ON Table;
+   -- Operaciones masivas
+   ENABLE TRIGGER trg_Audit ON Table;
+   ```
+
+2. **Event Sourcing**:
+   ```javascript
+   // En lugar de trigger
+   eventStore.emit('userUpdated', {
+       userId: 123,
+       changes: {...}
+   });
+   ```
+
+---
+
+## 12. Alternativas Modernas por DB 🛡️
+
+### 12.1 PostgreSQL
+
+```sql
+-- NOTIFY/LISTEN
+CREATE TRIGGER notify_change
+AFTER INSERT ON orders
+FOR EACH ROW
+EXECUTE FUNCTION pg_notify('order_created', NEW.id::text);
+```
+
+### 12.2 MongoDB Atlas Triggers
+
+```json
+{
+  "name": "updateInventory",
+  "type": "DATABASE",
+  "config": {
+    "operationTypes": ["insert"],
+    "database": "ecommerce",
+    "collection": "orders",
+    "serviceName": "mongodb-atlas"
+  },
+  "function": "updateInventoryFunction"
+}
+```
+
+---
+
+### 12.3 Comparativa de Enfoques
+
+| Enfoque     | Latencia | Complejidad | Escalabilidad |
+|-------------|----------|-------------|----------------|
+| Triggers    | Baja     | Media       | Limitada       |
+| CDC         | Media    | Alta        | Alta           |
+| Event Bus   | Alta     | Alta        | Muy Alta       |
+| Polling     | Variable | Baja        | Media          |
+
+> **Recomendación final**:  
+> Usa triggers para lógica crítica sincrónica y eventos asincrónicos para operaciones complejas o distribuidas.
