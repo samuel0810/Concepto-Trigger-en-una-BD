@@ -161,7 +161,7 @@ DELIMITER ;
 
 ### 8.1 Flujo Automatizado de Engagement
 
-![Trigger Marketing](C:/Users/miaun/Downloads/TriggerMarketin8.png)
+![Trigger Marketing](imagenes/TriggerMarketing8.png)
 
 **Plataformas**:
 - **Klaviyo**: Triggers basados en comportamiento
@@ -237,7 +237,7 @@ END;
 | Contextual     | Accede al estado anterior/posterior | Comparar valores old/new   |
 | Encadenable    | Puede activar otros triggers         | Actualización en cascada   |
 
-![Diagrama Trigger](C:/Users/miaun/Downloads/diagramaPregunta10.png)
+![Diagrama](imagenes/diagramaPregunta10.png)
 
 ---
 
